@@ -5,10 +5,6 @@ import * as https from "https";
 import * as http from "http";
 import { URL } from "url";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 interface BatchInput {
   id: string;
   text: string;
@@ -38,10 +34,6 @@ interface BatchResponse {
   };
 }
 
-// ---------------------------------------------------------------------------
-// Recommendation tier helpers
-// ---------------------------------------------------------------------------
-
 type Tier = "SHIP" | "HOLD" | "ESCALATE";
 
 function toTier(rec: string): Tier {
@@ -56,10 +48,6 @@ const TIER_RANK: Record<Tier, number> = { SHIP: 0, HOLD: 1, ESCALATE: 2 };
 function worstTier(a: Tier, b: Tier): Tier {
   return TIER_RANK[a] >= TIER_RANK[b] ? a : b;
 }
-
-// ---------------------------------------------------------------------------
-// HTTP helper (no external deps beyond Node builtins)
-// ---------------------------------------------------------------------------
 
 function postJSON(
   url: string,
@@ -101,12 +89,7 @@ function postJSON(
   });
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-
 async function run(): Promise<void> {
-  // 1. Read inputs
   const inputsPath = core.getInput("inputs", { required: true });
   const apiKey = core.getInput("api_key", { required: true });
   const apiUrl = core.getInput("api_url") || "https://seed-9n9a0g.fly.dev";
@@ -133,7 +116,7 @@ async function run(): Promise<void> {
     return;
   }
 
-  // Normalize: accept string[] or {id, text}[]
+  // Accepts string[] or {id, text}[]
   const inputs: BatchInput[] = parsed.map(
     (item: unknown, i: number): BatchInput => {
       if (typeof item === "string") {
@@ -160,7 +143,6 @@ async function run(): Promise<void> {
 
   core.info(`Evaluating ${inputs.length} input(s) against SEED LR (${mode})`);
 
-  // 2. POST to /batch
   const batchUrl = `${apiUrl.replace(/\/+$/, "")}/batch`;
   let response: { status: number; data: string };
   try {
@@ -189,7 +171,6 @@ async function run(): Promise<void> {
     return;
   }
 
-  // 3. Write full artifact
   const artifactPath = path.join(
     process.env.GITHUB_WORKSPACE || ".",
     "seed-lr-results.json"
@@ -197,14 +178,9 @@ async function run(): Promise<void> {
   fs.writeFileSync(artifactPath, JSON.stringify(batch, null, 2), "utf-8");
   core.info(`Full artifact written to ${artifactPath}`);
 
-  // 4. Print summary table
   core.info("");
-  core.info(
-    "| # | ID | Recommendation | Risk Level | Top Concern |"
-  );
-  core.info(
-    "|---|-----|----------------|------------|-------------|"
-  );
+  core.info("| # | ID | Recommendation | Risk Level | Top Concern |");
+  core.info("|---|-----|----------------|------------|-------------|");
 
   let worst: Tier = "SHIP";
   let hasWarnings = false;
@@ -227,18 +203,15 @@ async function run(): Promise<void> {
   const escalateCount = batch.summary?.escalate ?? 0;
 
   core.info("");
-  core.info(
-    `Totals: ${shipCount} SHIP / ${holdCount} HOLD / ${escalateCount} ESCALATE`
-  );
+  core.info(`Totals: ${shipCount} SHIP / ${holdCount} HOLD / ${escalateCount} ESCALATE`);
   core.info(`Worst recommendation: ${worst}`);
 
-  // 5. Set outputs
   core.setOutput("recommendation", worst);
   core.setOutput("ship_count", shipCount.toString());
   core.setOutput("hold_count", holdCount.toString());
   core.setOutput("escalate_count", escalateCount.toString());
+  core.setOutput("failed", (TIER_RANK[worst] >= (TIER_RANK[failOn] ?? TIER_RANK.ESCALATE)).toString());
 
-  // 6. Determine pass/fail
   const failOnRank = TIER_RANK[failOn] ?? TIER_RANK.ESCALATE;
   const worstRank = TIER_RANK[worst];
 
@@ -252,15 +225,11 @@ async function run(): Promise<void> {
   if (holdCount > 0 && failOn === "ESCALATE") {
     hasWarnings = true;
     core.warning(
-      `${holdCount} input(s) received HOLD recommendation — review before shipping`
+      `${holdCount} input(s) received HOLD recommendation -- review before shipping`
     );
   }
 
-  core.info(
-    hasWarnings
-      ? "SEED LR check passed with warnings"
-      : "SEED LR check passed"
-  );
+  core.info(hasWarnings ? "SEED LR check passed with warnings" : "SEED LR check passed");
 }
 
 run().catch((err) => core.setFailed(`Unexpected error: ${err}`));
