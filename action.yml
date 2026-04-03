@@ -1,4 +1,4 @@
-name: SEED LR Language Risk Check
+name: SEED Language Risk Check
 description: >-
   Evaluate AI-generated text against adversarial interpreter profiles.
   Flags compliance risk, coercive language, and absolute claims before they ship.
