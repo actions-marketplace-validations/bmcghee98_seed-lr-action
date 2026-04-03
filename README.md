@@ -1,4 +1,4 @@
-# SEED LR Language Risk Check
+# SEED Language Risk Check
 
 Evaluate AI-generated text against adversarial interpreter profiles before it ships.
 Flags compliance risk, coercive language, and absolute claims that would not survive
@@ -13,7 +13,7 @@ Built by SEED LR -- https://review.seedengine.systems
 Add this to your workflow:
 
 ```yaml
-- name: SEED LR Language Risk Check
+- name: SEED Language Risk Check
   uses: bmcghee98/seed-lr-action@v1
   with:
     inputs: outputs.json
