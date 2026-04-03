@@ -34,6 +34,13 @@ jobs:
           echo "Failed: ${{ steps.seed.outputs.failed }}"
           test -f seed-lr-results.json && echo "Artifact written" || (echo "Artifact missing" && exit 1)
 
+      - name: Upload results artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: seed-lr-results
+          path: seed-lr-results.json
+
   test-escalate-detected:
     name: Flagged input is detected
     runs-on: ubuntu-latest

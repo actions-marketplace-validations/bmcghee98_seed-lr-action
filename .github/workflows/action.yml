@@ -1,0 +1,40 @@
+name: SEED LR Language Risk Check
+description: >-
+  Evaluate AI-generated text against adversarial interpreter profiles.
+  Flags compliance risk, coercive language, and absolute claims before they ship.
+branding:
+  icon: shield
+  color: green
+inputs:
+  inputs:
+    description: Path to JSON file containing array of text strings to evaluate
+    required: true
+  api_key:
+    description: SEED LR API key
+    required: true
+  api_url:
+    description: SEED LR API base URL
+    required: false
+    default: https://seed-9n9a0g.fly.dev
+  fail_on:
+    description: Recommendation level that fails the build (ESCALATE or HOLD)
+    required: false
+    default: ESCALATE
+  mode:
+    description: Evaluation mode
+    required: false
+    default: fintech
+outputs:
+  recommendation:
+    description: Worst-case recommendation across all inputs
+  ship_count:
+    description: Number of inputs that received SHIP
+  hold_count:
+    description: Number of inputs that received HOLD
+  escalate_count:
+    description: Number of inputs that received ESCALATE
+  failed:
+    description: true if any input hit the fail_on threshold
+runs:
+  using: node20
+  main: dist/index.js
