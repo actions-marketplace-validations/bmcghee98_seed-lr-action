@@ -1,0 +1,65 @@
+name: Test Action
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-ship:
+    name: Clean input passes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write clean test input
+        run: |
+          echo '["Consider speaking with a licensed financial advisor before making any investment decisions.", "Our platform connects you with accredited advisors who can review your situation."]' > test_inputs.json
+
+      - name: Run SEED LR check
+        id: seed
+        uses: ./
+        with:
+          inputs: test_inputs.json
+          api_key: ${{ secrets.SEED_API_KEY }}
+          fail_on: ESCALATE
+          mode: fintech
+
+      - name: Verify outputs are present
+        run: |
+          echo "Recommendation: ${{ steps.seed.outputs.recommendation }}"
+          echo "SHIP: ${{ steps.seed.outputs.ship_count }}"
+          echo "HOLD: ${{ steps.seed.outputs.hold_count }}"
+          echo "ESCALATE: ${{ steps.seed.outputs.escalate_count }}"
+          echo "Failed: ${{ steps.seed.outputs.failed }}"
+          test -f seed-lr-results.json && echo "Artifact written" || (echo "Artifact missing" && exit 1)
+
+  test-escalate-detected:
+    name: Flagged input is detected
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write flagged test input
+        run: |
+          echo '["Your money is 100% guaranteed safe and will never lose value.", "This is fully compliant with all regulations and approved by all authorities."]' > test_inputs.json
+
+      - name: Run SEED LR check (expect non-zero escalate count)
+        id: seed
+        uses: ./
+        with:
+          inputs: test_inputs.json
+          api_key: ${{ secrets.SEED_API_KEY }}
+          fail_on: "HOLD"
+        continue-on-error: true
+
+      - name: Verify escalate or hold was detected
+        run: |
+          HOLD="${{ steps.seed.outputs.hold_count }}"
+          ESCALATE="${{ steps.seed.outputs.escalate_count }}"
+          echo "HOLD=$HOLD ESCALATE=$ESCALATE"
+          if [ "$HOLD" = "0" ] && [ "$ESCALATE" = "0" ]; then
+            echo "Expected at least one HOLD or ESCALATE for flagged input"
+            exit 1
+          fi
+          echo "Detection confirmed"
