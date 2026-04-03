@@ -14,7 +14,12 @@ jobs:
 
       - name: Write clean test input
         run: |
-          echo '["Consider speaking with a licensed financial advisor before making any investment decisions.", "Our platform connects you with accredited advisors who can review your situation."]' > test_inputs.json
+          cat > test_inputs.json << 'EOF'
+          [
+            "Before making any investment decisions, please speak with a licensed financial advisor who can review your personal situation. Past performance does not guarantee future results. All investments carry risk, including the possible loss of principal.",
+            "Our platform connects qualified users with accredited advisors. Advisors are independent professionals and do not receive commissions from product recommendations. You should review all materials carefully before acting on any advice."
+          ]
+          EOF
 
       - name: Run SEED LR check
         id: seed
